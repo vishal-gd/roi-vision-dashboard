@@ -1,23 +1,39 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ROICostInput, ROICosts } from "@/components/dashboard/ROICostInput";
 import { BundleCard } from "@/components/dashboard/BundleCard";
 import { FeatureDetailPanel } from "@/components/dashboard/FeatureDetailPanel";
 import { StatsOverview } from "@/components/dashboard/StatsOverview";
-import { BundleName, getBundleTotals, featureConfigs } from "@/data/cloudAccounts";
+import { InventoryOverview } from "@/components/dashboard/InventoryOverview";
+import { DashboardFilters, FilterState, filterAccounts } from "@/components/dashboard/DashboardFilters";
+import { BundleName, costFeatureConfigs, getFeatureTotal } from "@/data/cloudAccounts";
 import { BarChart3, TrendingUp } from "lucide-react";
 
-const bundleOrder: BundleName[] = ["Core", "FinOps", "CloudOps", "SecOps"];
+const bundleOrder: BundleName[] = ["FinOps", "CloudOps", "SecOps"];
 
 const Index = () => {
   const defaultCosts: ROICosts = {};
-  featureConfigs.forEach(f => { defaultCosts[f.key] = 10; });
+  costFeatureConfigs.forEach(f => { defaultCosts[f.key] = 10; });
   const [costs, setCosts] = useState<ROICosts>(defaultCosts);
   const [selectedBundle, setSelectedBundle] = useState<BundleName | null>(null);
+  const [filters, setFilters] = useState<FilterState>({
+    environment: "all",
+    accountMaster: "all",
+    month: "all",
+  });
 
-  const totalROI = Object.values(costs).reduce((s, v) => s + v, 0);
-  const bundleTotals = getBundleTotals();
-  const totalFeatureCount = Object.values(bundleTotals).reduce((s, v) => s + v, 0);
+  const filteredAccounts = useMemo(() => filterAccounts(filters), [filters]);
+
+  const totalROI = useMemo(() => {
+    return costFeatureConfigs.reduce((sum, f) => {
+      const count = getFeatureTotal(f.key, filteredAccounts);
+      return sum + count * (costs[f.key] || 0);
+    }, 0);
+  }, [costs, filteredAccounts]);
+
+  const totalFeatureCount = useMemo(() => {
+    return costFeatureConfigs.reduce((sum, f) => sum + getFeatureTotal(f.key, filteredAccounts), 0);
+  }, [filteredAccounts]);
 
   return (
     <div className="min-h-screen bg-background dark">
@@ -51,7 +67,13 @@ const Index = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Summary Stats */}
+        {/* Filters */}
+        <DashboardFilters filters={filters} onChange={setFilters} />
+
+        {/* Inventory Overview */}
+        <InventoryOverview filteredAccounts={filteredAccounts} />
+
+        {/* Cloud Accounts & Tenants */}
         <StatsOverview />
 
         {/* Cost Overview Banner */}
@@ -70,7 +92,7 @@ const Index = () => {
             </div>
             {totalROI > 0 && (
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">Total Investment</p>
+                <p className="text-xs text-muted-foreground">Total Projected Cost</p>
                 <p className="text-3xl font-mono font-bold gradient-text">${totalROI.toLocaleString()}</p>
               </div>
             )}
@@ -79,7 +101,7 @@ const Index = () => {
 
         {/* Bundle Cards */}
         {!selectedBundle ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {bundleOrder.map((bundle, i) => (
               <BundleCard
                 key={bundle}
@@ -87,6 +109,7 @@ const Index = () => {
                 costs={costs}
                 onClick={() => setSelectedBundle(bundle)}
                 index={i}
+                filteredAccounts={filteredAccounts}
               />
             ))}
           </div>
@@ -95,9 +118,9 @@ const Index = () => {
             bundle={selectedBundle}
             costs={costs}
             onClose={() => setSelectedBundle(null)}
+            filteredAccounts={filteredAccounts}
           />
         )}
-
       </main>
     </div>
   );

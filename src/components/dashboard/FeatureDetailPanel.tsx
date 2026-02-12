@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, TrendingUp, Users, ArrowLeft } from "lucide-react";
-import { BundleName, featureConfigs, getFeatureTotal, getTopTenantsByFeature, cloudAccounts } from "@/data/cloudAccounts";
+import { BundleName, costFeatureConfigs, getFeatureTotal, getTopTenantsByFeature, CloudAccount } from "@/data/cloudAccounts";
 import { ROICosts } from "./ROICostInput";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -15,16 +15,21 @@ interface FeatureDetailPanelProps {
   bundle: BundleName;
   costs: ROICosts;
   onClose: () => void;
+  filteredAccounts: CloudAccount[];
 }
 
-export function FeatureDetailPanel({ bundle, costs, onClose }: FeatureDetailPanelProps) {
-  const features = featureConfigs.filter((f) => f.bundle === bundle);
+export function FeatureDetailPanel({ bundle, costs, onClose, filteredAccounts }: FeatureDetailPanelProps) {
+  const features = costFeatureConfigs.filter((f) => f.bundle === bundle);
   const chartColor = bundleChartColors[bundle];
-  const chartData = features.map((f) => ({
-    name: f.label,
-    count: getFeatureTotal(f.key),
-    cost: costs[f.key] || 0,
-  }));
+  const chartData = features.map((f) => {
+    const count = getFeatureTotal(f.key, filteredAccounts);
+    const unitCost = costs[f.key] || 0;
+    return {
+      name: f.label,
+      count,
+      cost: count * unitCost,
+    };
+  });
 
   return (
     <AnimatePresence>
@@ -57,7 +62,7 @@ export function FeatureDetailPanel({ bundle, costs, onClose }: FeatureDetailPane
           </button>
         </div>
 
-        {/* Feature count chart */}
+        {/* Cost projection chart */}
         <div className="mb-6 h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 20, left: 5 }}>
@@ -77,8 +82,12 @@ export function FeatureDetailPanel({ bundle, costs, onClose }: FeatureDetailPane
                   fontSize: "12px",
                 }}
                 labelStyle={{ color: "hsl(var(--foreground))" }}
+                formatter={(value: number, name: string) => {
+                  if (name === "cost") return [`$${value.toLocaleString()}`, "Cost Projection"];
+                  return [value.toLocaleString(), "Count"];
+                }}
               />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]} fill={chartColor} opacity={0.85} />
+              <Bar dataKey="cost" radius={[4, 4, 0, 0]} fill={chartColor} opacity={0.85} name="cost" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -86,10 +95,11 @@ export function FeatureDetailPanel({ bundle, costs, onClose }: FeatureDetailPane
         {/* Feature detail table */}
         <div className="space-y-2">
           {features.map((feature, i) => {
-            const total = getFeatureTotal(feature.key);
-            const cost = costs[feature.key] || 0;
-            const topTenants = getTopTenantsByFeature(feature.key, 5);
-            const accountsWithFeature = cloudAccounts.filter(
+            const total = getFeatureTotal(feature.key, filteredAccounts);
+            const unitCost = costs[feature.key] || 0;
+            const projectedCost = total * unitCost;
+            const topTenants = getTopTenantsByFeature(feature.key, 5, filteredAccounts);
+            const accountsWithFeature = filteredAccounts.filter(
               (a) => Number(a[feature.key]) > 0
             ).length;
 
@@ -107,10 +117,8 @@ export function FeatureDetailPanel({ bundle, costs, onClose }: FeatureDetailPane
                     <p className="text-xs text-muted-foreground mt-0.5">{feature.description}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-mono font-bold">{total.toLocaleString()}</p>
-                    {cost > 0 && (
-                      <p className="text-xs text-primary font-semibold">${cost.toLocaleString()} ROI</p>
-                    )}
+                    <p className="text-lg font-mono font-bold gradient-text">${projectedCost.toLocaleString()}</p>
+                    <p className="text-[10px] text-muted-foreground">{total.toLocaleString()} × ${unitCost}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">

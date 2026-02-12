@@ -145,24 +145,26 @@ export const tenantSummaries: TenantSummary[] = [
   { tenantName: "Werner Corp", status: "active", totalCloudAccounts: 1, active: 1, inactive: 0, notOnboarded: 0, notOnboardedValidated: 0, notValidated: 0 },
 ];
 
-// Helper to get totals per feature
-export function getFeatureTotal(key: keyof CloudAccount): number {
-  return cloudAccounts.reduce((sum, a) => sum + (Number(a[key]) || 0), 0);
+// Helper to get totals per feature (optionally from filtered accounts)
+export function getFeatureTotal(key: keyof CloudAccount, accounts?: CloudAccount[]): number {
+  const data = accounts || cloudAccounts;
+  return data.reduce((sum, a) => sum + (Number(a[key]) || 0), 0);
 }
 
 // Helper to get totals per bundle
-export function getBundleTotals(): Record<BundleName, number> {
+export function getBundleTotals(accounts?: CloudAccount[]): Record<BundleName, number> {
   const totals: Record<BundleName, number> = { Core: 0, FinOps: 0, CloudOps: 0, SecOps: 0 };
   featureConfigs.forEach(f => {
-    totals[f.bundle] += getFeatureTotal(f.key);
+    totals[f.bundle] += getFeatureTotal(f.key, accounts);
   });
   return totals;
 }
 
-// Get top tenants by a feature
-export function getTopTenantsByFeature(key: keyof CloudAccount, limit = 10) {
+// Get top tenants by a feature (optionally from filtered accounts)
+export function getTopTenantsByFeature(key: keyof CloudAccount, limit = 10, accounts?: CloudAccount[]) {
+  const data = accounts || cloudAccounts;
   const tenantMap = new Map<string, number>();
-  cloudAccounts.forEach(a => {
+  data.forEach(a => {
     const val = Number(a[key]) || 0;
     tenantMap.set(a.tenantName, (tenantMap.get(a.tenantName) || 0) + val);
   });
@@ -172,3 +174,6 @@ export function getTopTenantsByFeature(key: keyof CloudAccount, limit = 10) {
     .slice(0, limit)
     .filter(t => t.value > 0);
 }
+
+// Non-inventory feature configs (for cost projection)
+export const costFeatureConfigs = featureConfigs.filter(f => f.key !== "inventoryCount");
