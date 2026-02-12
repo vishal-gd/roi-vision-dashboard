@@ -38,19 +38,13 @@ export function BundleCard({ bundle, costs, onClick, index }: BundleCardProps) {
         <BarChart3 className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
       </div>
       <h3 className="text-lg font-bold mb-1">{bundle}</h3>
-      <p className="text-3xl font-mono font-bold mb-2">{totalCount.toLocaleString()}</p>
-      <p className="text-xs text-muted-foreground mb-3">{features.length} features tracked</p>
-      {totalCost > 0 && (
-        <div className={`text-sm font-semibold text-${colorClass} flex items-center gap-1`}>
-          <DollarSign className="h-3.5 w-3.5" />
-          {totalCost.toLocaleString()} ROI Cost
-        </div>
-      )}
+      <p className="text-3xl font-mono font-bold mb-1 gradient-text">${totalCost.toLocaleString()}</p>
+      <p className="text-xs text-muted-foreground mb-3">{features.length} features · {totalCount.toLocaleString()} instances</p>
       <div className="mt-3 space-y-1.5">
         {features.slice(0, 3).map((f) => (
           <div key={f.key} className="flex justify-between text-xs">
             <span className="text-muted-foreground">{f.label}</span>
-            <span className="font-mono font-medium">{getFeatureTotal(f.key).toLocaleString()}</span>
+            <span className="font-mono font-medium">${(costs[f.key] || 0).toLocaleString()}</span>
           </div>
         ))}
         {features.length > 3 && (

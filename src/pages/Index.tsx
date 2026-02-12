@@ -4,14 +4,15 @@ import { ROICostInput, ROICosts } from "@/components/dashboard/ROICostInput";
 import { BundleCard } from "@/components/dashboard/BundleCard";
 import { FeatureDetailPanel } from "@/components/dashboard/FeatureDetailPanel";
 import { StatsOverview } from "@/components/dashboard/StatsOverview";
-import { TenantTable } from "@/components/dashboard/TenantTable";
 import { BundleName, getBundleTotals, featureConfigs } from "@/data/cloudAccounts";
 import { BarChart3, TrendingUp } from "lucide-react";
 
 const bundleOrder: BundleName[] = ["Core", "FinOps", "CloudOps", "SecOps"];
 
 const Index = () => {
-  const [costs, setCosts] = useState<ROICosts>({});
+  const defaultCosts: ROICosts = {};
+  featureConfigs.forEach(f => { defaultCosts[f.key] = 10; });
+  const [costs, setCosts] = useState<ROICosts>(defaultCosts);
   const [selectedBundle, setSelectedBundle] = useState<BundleName | null>(null);
 
   const totalROI = Object.values(costs).reduce((s, v) => s + v, 0);
@@ -97,8 +98,6 @@ const Index = () => {
           />
         )}
 
-        {/* Tenant Table */}
-        {!selectedBundle && <TenantTable />}
       </main>
     </div>
   );
