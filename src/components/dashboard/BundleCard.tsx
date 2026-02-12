@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { BundleName, bundleColors, featureConfigs, getFeatureTotal } from "@/data/cloudAccounts";
+import { BundleName, bundleColors, costFeatureConfigs, getFeatureTotal, CloudAccount } from "@/data/cloudAccounts";
 import { ROICosts } from "./ROICostInput";
 import { Box, DollarSign, Shield, Cloud, BarChart3 } from "lucide-react";
 
@@ -15,12 +15,19 @@ interface BundleCardProps {
   costs: ROICosts;
   onClick: () => void;
   index: number;
+  filteredAccounts: CloudAccount[];
 }
 
-export function BundleCard({ bundle, costs, onClick, index }: BundleCardProps) {
-  const features = featureConfigs.filter((f) => f.bundle === bundle);
-  const totalCount = features.reduce((s, f) => s + getFeatureTotal(f.key), 0);
-  const totalCost = features.reduce((s, f) => s + (costs[f.key] || 0), 0);
+export function BundleCard({ bundle, costs, onClick, index, filteredAccounts }: BundleCardProps) {
+  const features = costFeatureConfigs.filter((f) => f.bundle === bundle);
+  if (features.length === 0) return null;
+
+  const totalCost = features.reduce((s, f) => {
+    const count = getFeatureTotal(f.key, filteredAccounts);
+    const unitCost = costs[f.key] || 0;
+    return s + count * unitCost;
+  }, 0);
+  const totalCount = features.reduce((s, f) => s + getFeatureTotal(f.key, filteredAccounts), 0);
   const colorClass = bundleColors[bundle];
 
   return (
@@ -41,12 +48,16 @@ export function BundleCard({ bundle, costs, onClick, index }: BundleCardProps) {
       <p className="text-3xl font-mono font-bold mb-1 gradient-text">${totalCost.toLocaleString()}</p>
       <p className="text-xs text-muted-foreground mb-3">{features.length} features · {totalCount.toLocaleString()} instances</p>
       <div className="mt-3 space-y-1.5">
-        {features.slice(0, 3).map((f) => (
-          <div key={f.key} className="flex justify-between text-xs">
-            <span className="text-muted-foreground">{f.label}</span>
-            <span className="font-mono font-medium">${(costs[f.key] || 0).toLocaleString()}</span>
-          </div>
-        ))}
+        {features.slice(0, 3).map((f) => {
+          const count = getFeatureTotal(f.key, filteredAccounts);
+          const unitCost = costs[f.key] || 0;
+          return (
+            <div key={f.key} className="flex justify-between text-xs">
+              <span className="text-muted-foreground">{f.label}</span>
+              <span className="font-mono font-medium">${(count * unitCost).toLocaleString()}</span>
+            </div>
+          );
+        })}
         {features.length > 3 && (
           <p className="text-xs text-muted-foreground">+{features.length - 3} more</p>
         )}
