@@ -6,6 +6,7 @@ import { FeatureDetailPanel } from "@/components/dashboard/FeatureDetailPanel";
 import { StatsOverview } from "@/components/dashboard/StatsOverview";
 import { InventoryOverview } from "@/components/dashboard/InventoryOverview";
 import { DashboardFilters, FilterState, filterAccounts } from "@/components/dashboard/DashboardFilters";
+import { ReportDownload } from "@/components/dashboard/ReportDownload";
 import { BundleName, costFeatureConfigs, getFeatureTotal } from "@/data/cloudAccounts";
 import { BarChart3, TrendingUp } from "lucide-react";
 
@@ -34,6 +35,14 @@ const Index = () => {
   const totalFeatureCount = useMemo(() => {
     return costFeatureConfigs.reduce((sum, f) => sum + getFeatureTotal(f.key, filteredAccounts), 0);
   }, [filteredAccounts]);
+
+  // Overall report data
+  const overallReportHeaders = ["Bundle", "Feature", "Count", "Unit Cost ($)", "Projected Cost ($)"];
+  const overallReportRows = costFeatureConfigs.map((f) => {
+    const count = getFeatureTotal(f.key, filteredAccounts);
+    const unitCost = costs[f.key] || 0;
+    return [f.bundle, f.label, count, unitCost, count * unitCost];
+  });
 
   return (
     <div className="min-h-screen bg-background dark">
@@ -70,9 +79,6 @@ const Index = () => {
         {/* Filters */}
         <DashboardFilters filters={filters} onChange={setFilters} />
 
-        {/* Inventory Overview */}
-        <InventoryOverview filteredAccounts={filteredAccounts} />
-
         {/* Cloud Accounts & Tenants */}
         <StatsOverview />
 
@@ -90,12 +96,20 @@ const Index = () => {
                 Click any bundle to view detailed breakdown.
               </p>
             </div>
-            {totalROI > 0 && (
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Total Projected Cost</p>
-                <p className="text-3xl font-mono font-bold gradient-text">${totalROI.toLocaleString()}</p>
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              <ReportDownload
+                title="Cost Projection Overview"
+                headers={overallReportHeaders}
+                rows={overallReportRows}
+                filename="cost-projection-overview"
+              />
+              {totalROI > 0 && (
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Total Projected Cost</p>
+                  <p className="text-3xl font-mono font-bold gradient-text">${totalROI.toLocaleString()}</p>
+                </div>
+              )}
+            </div>
           </div>
         </motion.div>
 
@@ -121,6 +135,9 @@ const Index = () => {
             filteredAccounts={filteredAccounts}
           />
         )}
+
+        {/* Inventory Overview - below cost projection */}
+        <InventoryOverview filteredAccounts={filteredAccounts} />
       </main>
     </div>
   );

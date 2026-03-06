@@ -48,18 +48,22 @@ export function BundleCard({ bundle, costs, onClick, index, filteredAccounts }: 
       <p className="text-3xl font-mono font-bold mb-1 gradient-text">${totalCost.toLocaleString()}</p>
       <p className="text-xs text-muted-foreground mb-3">{features.length} features · {totalCount.toLocaleString()} instances</p>
       <div className="mt-3 space-y-1.5">
-        {features.slice(0, 3).map((f) => {
+        {features.slice(0, 4).map((f) => {
           const count = getFeatureTotal(f.key, filteredAccounts);
           const unitCost = costs[f.key] || 0;
           return (
-            <div key={f.key} className="flex justify-between text-xs">
+            <div key={f.key} className="flex justify-between text-xs items-center">
               <span className="text-muted-foreground">{f.label}</span>
-              <span className="font-mono font-medium">${(count * unitCost).toLocaleString()}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-muted-foreground">{count.toLocaleString()}</span>
+                <span className="text-muted-foreground">×</span>
+                <span className="font-mono font-medium">${(count * unitCost).toLocaleString()}</span>
+              </div>
             </div>
           );
         })}
-        {features.length > 3 && (
-          <p className="text-xs text-muted-foreground">+{features.length - 3} more</p>
+        {features.length > 4 && (
+          <p className="text-xs text-muted-foreground">+{features.length - 4} more</p>
         )}
       </div>
     </motion.div>
