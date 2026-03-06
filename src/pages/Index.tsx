@@ -35,6 +35,27 @@ const Index = () => {
     return costFeatureConfigs.reduce((sum, f) => sum + getFeatureTotal(f.key, filteredAccounts), 0);
   }, [filteredAccounts]);
 
+  const bundleColorMap: Record<string, number[]> = {
+    FinOps: [34, 197, 94],
+    CloudOps: [245, 158, 11],
+    SecOps: [168, 85, 247],
+  };
+
+  const bundleBreakdown = bundleOrder.map((bundle) => {
+    const features = costFeatureConfigs.filter((f) => f.bundle === bundle);
+    const featureData = features.map((f) => {
+      const count = getFeatureTotal(f.key, filteredAccounts);
+      const unitCost = costs[f.key] || 0;
+      return { name: f.label, count, unitCost, projected: count * unitCost };
+    });
+    return {
+      bundle,
+      color: bundleColorMap[bundle] || [100, 100, 100],
+      features: featureData,
+      totalCost: featureData.reduce((s, f) => s + f.projected, 0),
+    };
+  });
+
   const overallReportHeaders = ["Bundle", "Feature", "Count", "Unit Cost ($)", "Projected Cost ($)"];
   const overallReportRows = costFeatureConfigs.map((f) => {
     const count = getFeatureTotal(f.key, filteredAccounts);
@@ -105,6 +126,7 @@ const Index = () => {
                 rows={overallReportRows}
                 summaryRows={overallSummary}
                 filename="cost-projection-overview"
+                bundleBreakdown={bundleBreakdown}
               />
               {totalROI > 0 && (
                 <div className="text-right">
