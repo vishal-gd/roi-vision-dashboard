@@ -3,11 +3,11 @@ import { motion } from "framer-motion";
 import { ROICostInput, ROICosts } from "@/components/dashboard/ROICostInput";
 import { BundleCard } from "@/components/dashboard/BundleCard";
 import { FeatureDetailPanel } from "@/components/dashboard/FeatureDetailPanel";
-import { DashboardFilters, FilterState, filterAccounts, hasActiveFilters } from "@/components/dashboard/DashboardFilters";
+import { DashboardFilters, FilterState, filterAccounts } from "@/components/dashboard/DashboardFilters";
 import { AccountGovernance } from "@/components/dashboard/AccountGovernance";
 import { ReportDownload } from "@/components/dashboard/ReportDownload";
 import { BundleName, costFeatureConfigs, getFeatureTotal } from "@/data/cloudAccounts";
-import { BarChart3, TrendingUp, SlidersHorizontal } from "lucide-react";
+import { BarChart3, TrendingUp } from "lucide-react";
 
 const bundleOrder: BundleName[] = ["FinOps", "CloudOps", "SecOps"];
 
@@ -22,7 +22,7 @@ const Index = () => {
     month: "",
   });
 
-  const filtersApplied = hasActiveFilters(filters);
+
   const filteredAccounts = useMemo(() => filterAccounts(filters), [filters]);
 
   const totalROI = useMemo(() => {
@@ -83,7 +83,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            {filtersApplied && totalROI > 0 && (
+            {totalROI > 0 && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -102,24 +102,9 @@ const Index = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         <DashboardFilters filters={filters} onChange={setFilters} />
 
-        {!filtersApplied ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="glass-card rounded-xl p-12 text-center"
-          >
-            <div className="inline-flex p-4 rounded-2xl bg-primary/5 mb-4">
-              <SlidersHorizontal className="h-10 w-10 text-primary/40" />
-            </div>
-            <h2 className="text-xl font-bold mb-2">Select Filters to Get Started</h2>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              Choose an environment, cloud accounts, and a month above to view cost projections and account governance details.
-            </p>
-          </motion.div>
-        ) : (
-          <>
-            {/* Account Governance & Inventory Details */}
-            <AccountGovernance filteredAccounts={filteredAccounts} />
+
+        {/* Account Governance & Inventory Details */}
+        <AccountGovernance filteredAccounts={filteredAccounts} />
 
             {/* Cost Projection Overview */}
             <motion.div
@@ -177,8 +162,6 @@ const Index = () => {
                 filteredAccounts={filteredAccounts}
               />
             )}
-          </>
-        )}
       </main>
     </div>
   );

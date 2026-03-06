@@ -136,7 +136,7 @@ export function DashboardFilters({ filters, onChange }: DashboardFiltersProps) {
         </div>
 
         {/* Cloud Accounts - Multi select up to 5 */}
-        <div className="space-y-1 relative" ref={dropdownRef}>
+        <div className="space-y-1" ref={dropdownRef} style={{ position: "relative", zIndex: 60 }}>
           <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
             Cloud Accounts <span className="text-muted-foreground/60">(max 5)</span>
           </label>
