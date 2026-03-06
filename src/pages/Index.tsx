@@ -43,6 +43,11 @@ const Index = () => {
     const unitCost = costs[f.key] || 0;
     return [f.bundle, f.label, count, unitCost, count * unitCost];
   });
+  const overallSummary = [
+    { label: "Total Features", value: String(costFeatureConfigs.length) },
+    { label: "Total Instances", value: totalFeatureCount.toLocaleString() },
+    { label: "Projected Cost", value: `$${totalROI.toLocaleString()}` },
+  ];
 
   return (
     <div className="min-h-screen bg-background dark">
@@ -99,8 +104,10 @@ const Index = () => {
             <div className="flex items-center gap-3">
               <ReportDownload
                 title="Cost Projection Overview"
+                subtitle="Synoptek · Complete Cost Projection Analysis"
                 headers={overallReportHeaders}
                 rows={overallReportRows}
+                summaryRows={overallSummary}
                 filename="cost-projection-overview"
               />
               {totalROI > 0 && (

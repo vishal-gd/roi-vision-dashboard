@@ -43,6 +43,8 @@ export function FeatureDetailPanel({ bundle, costs, onClose, filteredAccounts }:
     return { name: f.label, count, cost: count * unitCost };
   });
 
+  const bundleTotal = chartData.reduce((s, d) => s + d.cost, 0);
+  const bundleCount = chartData.reduce((s, d) => s + d.count, 0);
   const reportHeaders = ["Feature", "Count", "Unit Cost ($)", "Projected Cost ($)"];
   const reportRows = features.map((f) => {
     const count = getFeatureTotal(f.key, filteredAccounts);
@@ -73,9 +75,15 @@ export function FeatureDetailPanel({ bundle, costs, onClose, filteredAccounts }:
           <div className="flex items-center gap-2">
             <ReportDownload
               title={`${bundle} Bundle Report`}
+              subtitle={`Cost Projection Analysis · ${features.length} Features`}
               headers={reportHeaders}
               rows={reportRows}
               filename={`${bundle.toLowerCase()}-bundle-report`}
+              summaryRows={[
+                { label: "Total Features", value: String(features.length) },
+                { label: "Total Count", value: bundleCount.toLocaleString() },
+                { label: "Projected Cost", value: `$${bundleTotal.toLocaleString()}` },
+              ]}
             />
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-secondary transition-colors">
               <X className="h-4 w-4" />
