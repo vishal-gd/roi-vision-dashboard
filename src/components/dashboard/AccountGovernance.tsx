@@ -506,6 +506,49 @@ export function AccountGovernance({ filteredAccounts }: AccountGovernanceProps) 
   const reportHeaders = ["Tenant", "Total Accounts", "Active", "Inactive", "Not Onboarded", "Not Onboarded Validated", "Status"];
   const reportRows = tenantSummaries.map((t) => [t.tenantName, t.totalCloudAccounts, t.active, t.inactive, t.notOnboarded, t.notOnboardedValidated, t.status]);
 
+  // Build top 5 cloud accounts inventory sections for the report
+  const PROVIDER_COLORS: Record<string, number[]> = {
+    AWS: [245, 158, 11],
+    Azure: [59, 130, 246],
+    GCP: [34, 197, 94],
+    OCI: [239, 68, 68],
+    Other: [107, 114, 128],
+  };
+
+  const top5Accounts = [...filteredAccounts]
+    .sort((a, b) => b.inventoryCount - a.inventoryCount)
+    .slice(0, 5);
+
+  const accountInventorySections = top5Accounts
+    .filter(a => a.inventoryCount > 0)
+    .map(a => {
+      const cloud = deriveCloudType(a.cloudAccountName);
+      const categories = deriveProductCategories(a);
+      const totalCat = categories.reduce((s, c) => s + c.count, 0);
+      const chartData = categories.map(c => ({
+        category: c.category,
+        count: c.count,
+        percentage: totalCat > 0 ? Math.round((c.count / totalCat) * 100) : 0,
+      }));
+      const features = featureConfigs
+        .filter(f => f.key !== "inventoryCount")
+        .map(f => ({
+          label: f.label,
+          bundle: f.bundle,
+          value: Number(a[f.key]) || 0,
+        }))
+        .filter(f => f.value > 0);
+
+      return {
+        accountName: a.cloudAccountName,
+        provider: cloud,
+        providerColor: PROVIDER_COLORS[cloud] || PROVIDER_COLORS.Other,
+        totalInventory: a.inventoryCount,
+        categories: chartData,
+        features,
+      };
+    });
+
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-xl">
       {/* Collapsed header */}
@@ -534,7 +577,7 @@ export function AccountGovernance({ filteredAccounts }: AccountGovernanceProps) 
           )}
           <ReportDownload
             title="Account Governance Report"
-            subtitle="Tenant & Cloud Account Overview"
+            subtitle="Tenant & Cloud Account Overview · Top 5 Inventory Details"
             headers={reportHeaders}
             rows={reportRows}
             filename="account-governance-report"
@@ -544,6 +587,7 @@ export function AccountGovernance({ filteredAccounts }: AccountGovernanceProps) 
               { label: "Active", value: totalActive.toLocaleString() },
               { label: "Inventory", value: totalInventory.toLocaleString() },
             ]}
+            accountInventorySections={accountInventorySections}
           />
           <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
             <ChevronDown className="h-5 w-5 text-muted-foreground" />
