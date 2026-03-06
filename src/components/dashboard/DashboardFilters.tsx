@@ -107,7 +107,7 @@ export function DashboardFilters({ filters, onChange }: DashboardFiltersProps) {
   };
 
   return (
-    <div className="glass-card rounded-xl p-5">
+    <div className="glass-card rounded-xl p-5 relative z-[70]">
       <div className="flex items-center gap-2 mb-4">
         <div className="p-1.5 rounded-lg bg-primary/10">
           <Filter className="h-4 w-4 text-primary" />
@@ -153,7 +153,7 @@ export function DashboardFilters({ filters, onChange }: DashboardFiltersProps) {
           </button>
 
           {accountDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 w-[320px] bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+            <div className="absolute top-full left-0 mt-1 w-[320px] bg-card border border-border rounded-lg shadow-2xl z-[80] overflow-hidden">
               {/* Search */}
               <div className="p-2 border-b border-border">
                 <div className="relative">
