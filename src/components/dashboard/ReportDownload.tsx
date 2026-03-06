@@ -6,6 +6,15 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
+interface AccountInventorySection {
+  accountName: string;
+  provider: string;
+  providerColor: number[];
+  totalInventory: number;
+  categories: { category: string; count: number; percentage: number }[];
+  features: { label: string; bundle: string; value: number }[];
+}
+
 interface ReportDownloadProps {
   title: string;
   headers: string[];
@@ -19,9 +28,10 @@ interface ReportDownloadProps {
     features: { name: string; count: number; unitCost: number; projected: number }[];
     totalCost: number;
   }[];
+  accountInventorySections?: AccountInventorySection[];
 }
 
-export function ReportDownload({ title, headers, rows, filename, subtitle, summaryRows, bundleBreakdown }: ReportDownloadProps) {
+export function ReportDownload({ title, headers, rows, filename, subtitle, summaryRows, bundleBreakdown, accountInventorySections }: ReportDownloadProps) {
   const [downloading, setDownloading] = useState(false);
 
   const accentColors: number[][] = [
@@ -154,6 +164,171 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
     return startY + 4;
   };
 
+  const BUNDLE_REPORT_COLORS: Record<string, number[]> = {
+    FinOps: [59, 130, 246],
+    CloudOps: [34, 197, 94],
+    SecOps: [239, 68, 68],
+    Core: [139, 92, 246],
+  };
+
+  const drawAccountInventorySections = (doc: jsPDF, pageWidth: number, startY: number): number => {
+    if (!accountInventorySections || accountInventorySections.length === 0) return startY;
+
+    // Section title
+    startY = checkPageBreak(doc, startY, 30, pageWidth);
+    doc.setFillColor(15, 22, 40);
+    doc.roundedRect(14, startY, pageWidth - 28, 12, 2, 2, "F");
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(59, 130, 246);
+    doc.text("TOP CLOUD ACCOUNTS — INVENTORY DETAILS", 20, startY + 8);
+    startY += 18;
+
+    accountInventorySections.forEach((section, sIdx) => {
+      startY = checkPageBreak(doc, startY, 80, pageWidth);
+
+      // Account header bar
+      const pc = section.providerColor;
+      doc.setFillColor(pc[0], pc[1], pc[2]);
+      doc.roundedRect(14, startY, pageWidth - 28, 16, 2, 2, "F");
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      const displayName = section.accountName.length > 55 ? section.accountName.slice(0, 53) + "…" : section.accountName;
+      doc.text(`#${sIdx + 1}  ${displayName}`, 20, startY + 7);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.text(`${section.provider}  ·  ${section.totalInventory.toLocaleString()} resources  ·  ${section.categories.length} categories`, 20, startY + 13);
+      startY += 20;
+
+      // Inventory category table
+      if (section.categories.length > 0) {
+        // Column headers
+        doc.setFillColor(20, 28, 45);
+        doc.rect(14, startY, pageWidth - 28, 8, "F");
+        doc.setFontSize(6.5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(140, 160, 190);
+        doc.text("PRODUCT CATEGORY", 18, startY + 5.5);
+        doc.text("COUNT", 105, startY + 5.5);
+        doc.text("SHARE", pageWidth - 18, startY + 5.5, { align: "right" });
+        // Progress bar header
+        doc.text("DISTRIBUTION", 130, startY + 5.5);
+        startY += 10;
+
+        const maxCatCount = Math.max(...section.categories.map(c => c.count), 1);
+        section.categories.forEach((cat, ci) => {
+          startY = checkPageBreak(doc, startY, 10, pageWidth);
+          doc.setFillColor(ci % 2 === 0 ? 15 : 20, ci % 2 === 0 ? 18 : 25, ci % 2 === 0 ? 30 : 42);
+          doc.rect(14, startY, pageWidth - 28, 9, "F");
+
+          // Color dot
+          const dotColor = accentColors[ci % accentColors.length];
+          doc.setFillColor(dotColor[0], dotColor[1], dotColor[2]);
+          doc.circle(20, startY + 4.5, 1.5, "F");
+
+          doc.setFontSize(7);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(190, 205, 225);
+          doc.text(cat.category, 25, startY + 6);
+
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(210, 220, 235);
+          doc.text(cat.count.toLocaleString(), 105, startY + 6);
+
+          // Mini progress bar
+          const barX = 130;
+          const barW = 40;
+          const fillW = (cat.count / maxCatCount) * barW;
+          doc.setFillColor(35, 40, 55);
+          doc.roundedRect(barX, startY + 2.5, barW, 4, 1, 1, "F");
+          doc.setFillColor(pc[0], pc[1], pc[2]);
+          if (fillW > 0) doc.roundedRect(barX, startY + 2.5, Math.max(fillW, 1.5), 4, 1, 1, "F");
+
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(140, 155, 180);
+          doc.text(`${cat.percentage}%`, pageWidth - 18, startY + 6, { align: "right" });
+
+          startY += 9;
+        });
+
+        // Category total
+        doc.setFillColor(pc[0], pc[1], pc[2]);
+        doc.setGState(new (doc as any).GState({ opacity: 0.12 }));
+        doc.rect(14, startY, pageWidth - 28, 8, "F");
+        doc.setGState(new (doc as any).GState({ opacity: 1 }));
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(pc[0], pc[1], pc[2]);
+        doc.text("Total Resources", 18, startY + 5.5);
+        doc.text(section.totalInventory.toLocaleString(), 105, startY + 5.5);
+        doc.text("100%", pageWidth - 18, startY + 5.5, { align: "right" });
+        startY += 12;
+      }
+
+      // Feature details by bundle
+      if (section.features.length > 0) {
+        startY = checkPageBreak(doc, startY, 20, pageWidth);
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(160, 180, 210);
+        doc.text("FEATURE DETAILS", 18, startY + 3);
+        startY += 7;
+
+        // Group features by bundle
+        const byBundle: Record<string, typeof section.features> = {};
+        section.features.forEach(f => {
+          if (!byBundle[f.bundle]) byBundle[f.bundle] = [];
+          byBundle[f.bundle].push(f);
+        });
+
+        Object.entries(byBundle).forEach(([bundle, features]) => {
+          startY = checkPageBreak(doc, startY, 15, pageWidth);
+          const bColor = BUNDLE_REPORT_COLORS[bundle] || [100, 100, 100];
+          
+          // Bundle label
+          doc.setFillColor(bColor[0], bColor[1], bColor[2]);
+          doc.roundedRect(18, startY, 3, 6, 0.5, 0.5, "F");
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(bColor[0], bColor[1], bColor[2]);
+          doc.text(bundle, 24, startY + 4.5);
+
+          // Features inline
+          let fX = 50;
+          features.forEach(f => {
+            if (fX + 45 > pageWidth - 14) {
+              startY += 8;
+              fX = 50;
+              startY = checkPageBreak(doc, startY, 10, pageWidth);
+            }
+            doc.setFontSize(6);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(160, 175, 200);
+            doc.text(f.label, fX, startY + 4.5);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(220, 230, 245);
+            doc.text(String(f.value.toLocaleString()), fX + 32, startY + 4.5);
+            fX += 45;
+          });
+          startY += 10;
+        });
+      }
+
+      // Separator between accounts
+      if (sIdx < accountInventorySections.length - 1) {
+        startY += 2;
+        doc.setDrawColor(40, 50, 70);
+        doc.setLineWidth(0.3);
+        doc.line(14, startY, pageWidth - 14, startY);
+        startY += 6;
+      }
+    });
+
+    return startY;
+  };
+
   const downloadPDF = () => {
     setDownloading(true);
     try {
@@ -177,12 +352,10 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
           doc.text("COST DISTRIBUTION BY BUNDLE", 14, startY + 3);
           startY += 7;
 
-          // Stacked bar
           const barW = pageWidth - 28;
           const barH = 12;
           let barX = 14;
           
-          // Background
           doc.setFillColor(20, 25, 40);
           doc.roundedRect(14, startY, barW, barH, 2, 2, "F");
 
@@ -203,7 +376,6 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
           });
           startY += barH + 5;
 
-          // Legend row
           let legendX = 14;
           bundleBreakdown.forEach((b) => {
             doc.setFillColor(b.color[0], b.color[1], b.color[2]);
@@ -221,7 +393,6 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
         bundleBreakdown.forEach((b) => {
           startY = checkPageBreak(doc, startY, 50, pageWidth);
 
-          // Bundle header bar
           doc.setFillColor(b.color[0], b.color[1], b.color[2]);
           doc.roundedRect(14, startY, pageWidth - 28, 14, 2, 2, "F");
           doc.setFontSize(10);
@@ -233,7 +404,6 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
           doc.text(`$${b.totalCost.toLocaleString()} projected`, pageWidth - 20, startY + 9.5, { align: "right" });
           startY += 18;
 
-          // Column headers
           doc.setFillColor(20, 28, 45);
           doc.rect(14, startY, pageWidth - 28, 8, "F");
           doc.setFontSize(6.5);
@@ -245,22 +415,18 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
           doc.text("PROJECTED", pageWidth - 18, startY + 5.5, { align: "right" });
           startY += 10;
 
-          // Feature rows
           const maxCount = Math.max(...b.features.map(f => f.count), 1);
           b.features.forEach((f, fi) => {
             startY = checkPageBreak(doc, startY, 12, pageWidth);
 
-            // Alternating row bg
             doc.setFillColor(fi % 2 === 0 ? 15 : 20, fi % 2 === 0 ? 18 : 25, fi % 2 === 0 ? 30 : 42);
             doc.rect(14, startY, pageWidth - 28, 10, "F");
 
-            // Feature name
             doc.setFontSize(7);
             doc.setFont("helvetica", "normal");
             doc.setTextColor(190, 205, 225);
             doc.text(f.name, 18, startY + 6.5);
 
-            // Mini progress bar for count
             const barStartX = 88;
             const barMaxW = 35;
             const fillW = (f.count / maxCount) * barMaxW;
@@ -269,19 +435,16 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
             doc.setFillColor(b.color[0], b.color[1], b.color[2]);
             if (fillW > 0) doc.roundedRect(barStartX, startY + 3, Math.max(fillW, 1.5), 4, 1, 1, "F");
             
-            // Count value
             doc.setFontSize(7);
             doc.setFont("helvetica", "bold");
             doc.setTextColor(210, 220, 235);
             doc.text(f.count.toLocaleString(), barStartX + barMaxW + 3, startY + 6.5);
 
-            // Unit cost
             doc.setFontSize(7);
             doc.setFont("helvetica", "normal");
             doc.setTextColor(140, 155, 180);
             doc.text(`$${f.unitCost}`, 134, startY + 6.5);
 
-            // Projected cost
             doc.setFontSize(7.5);
             doc.setFont("helvetica", "bold");
             doc.setTextColor(b.color[0], b.color[1], b.color[2]);
@@ -290,7 +453,6 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
             startY += 10;
           });
 
-          // Bundle subtotal
           doc.setFillColor(b.color[0], b.color[1], b.color[2]);
           doc.setGState(new (doc as any).GState({ opacity: 0.15 }));
           doc.rect(14, startY, pageWidth - 28, 8, "F");
@@ -306,11 +468,9 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
         drawFooter(doc, pageWidth);
       } else {
         // === STANDARD TABLE REPORT ===
-        // Use autoTable with proper column sizing
         const colCount = headers.length;
         const availableWidth = pageWidth - 28;
         
-        // Smart column widths: first column wider, rest equal
         const firstColWidth = Math.min(availableWidth * 0.3, 60);
         const otherColWidth = (availableWidth - firstColWidth) / (colCount - 1);
         
@@ -350,6 +510,17 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
           tableWidth: availableWidth,
           didDrawPage: () => drawFooter(doc, pageWidth),
         });
+
+        // Draw account inventory sections after main table
+        const finalY = (doc as any).lastAutoTable?.finalY || startY + 20;
+        startY = finalY + 10;
+        startY = drawAccountInventorySections(doc, pageWidth, startY);
+        
+        if (!accountInventorySections || accountInventorySections.length === 0) {
+          drawFooter(doc, pageWidth);
+        } else {
+          drawFooter(doc, pageWidth);
+        }
       }
 
       doc.save(`${filename}.pdf`);
