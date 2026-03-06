@@ -541,10 +541,8 @@ export function AccountGovernance({ filteredAccounts }: AccountGovernanceProps) 
             summaryRows={[
               { label: "Total Tenants", value: String(tenantSummaries.length) },
               { label: "Cloud Accounts", value: totalAccounts.toLocaleString() },
-              { label: "Active Accounts", value: totalActive.toLocaleString() },
-              { label: "Inactive", value: totalInactive.toLocaleString() },
-              { label: "Not Onboarded", value: totalNotOnboarded.toLocaleString() },
-              { label: "Total Inventory", value: totalInventory.toLocaleString() },
+              { label: "Active", value: totalActive.toLocaleString() },
+              { label: "Inventory", value: totalInventory.toLocaleString() },
             ]}
           />
           <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
