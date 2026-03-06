@@ -53,7 +53,7 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(120, 150, 200);
-    doc.text(subtitle || "Synoptek · Cloud ROI Dashboard", 14, 27);
+    doc.text(subtitle || "Cloud ROI Dashboard", 14, 27);
 
     doc.setFontSize(8);
     doc.setTextColor(100, 130, 180);
@@ -62,7 +62,7 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(59, 130, 246);
-    doc.text("SYNOPTEK", pageWidth - 14, 18, { align: "right" });
+    doc.text("ROI DASHBOARD", pageWidth - 14, 18, { align: "right" });
     doc.setFontSize(7);
     doc.setTextColor(100, 130, 180);
     doc.setFont("helvetica", "normal");
@@ -81,7 +81,7 @@ export function ReportDownload({ title, headers, rows, filename, subtitle, summa
     doc.setFontSize(7);
     doc.setTextColor(100, 130, 180);
     doc.setFont("helvetica", "normal");
-    doc.text("Cloud ROI Dashboard · Synoptek", 14, pageHeight - 4);
+    doc.text("Cloud ROI Dashboard", 14, pageHeight - 4);
     doc.text(`Page ${doc.getCurrentPageInfo().pageNumber}`, pageWidth - 14, pageHeight - 4, { align: "right" });
   };
 

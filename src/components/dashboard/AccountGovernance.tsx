@@ -534,7 +534,7 @@ export function AccountGovernance({ filteredAccounts }: AccountGovernanceProps) 
           )}
           <ReportDownload
             title="Account Governance Report"
-            subtitle="Synoptek · Tenant & Cloud Account Overview"
+            subtitle="Tenant & Cloud Account Overview"
             headers={reportHeaders}
             rows={reportRows}
             filename="account-governance-report"
