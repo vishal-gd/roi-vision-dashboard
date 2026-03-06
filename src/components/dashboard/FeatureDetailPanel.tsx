@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, TrendingUp, Users, ArrowLeft } from "lucide-react";
-import { BundleName, costFeatureConfigs, getFeatureTotal, getTopTenantsByFeature, CloudAccount } from "@/data/cloudAccounts";
+import { BundleName, costFeatureConfigs, getFeatureTotal, getTopTenantsByFeature, CloudAccount, FeatureConfig } from "@/data/cloudAccounts";
 import { ROICosts } from "./ROICostInput";
+import { ReportDownload } from "./ReportDownload";
+import { FeatureDrilldown } from "./FeatureDrilldown";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 const bundleChartColors: Record<BundleName, string> = {
@@ -19,16 +22,32 @@ interface FeatureDetailPanelProps {
 }
 
 export function FeatureDetailPanel({ bundle, costs, onClose, filteredAccounts }: FeatureDetailPanelProps) {
+  const [drilldownFeature, setDrilldownFeature] = useState<FeatureConfig | null>(null);
   const features = costFeatureConfigs.filter((f) => f.bundle === bundle);
   const chartColor = bundleChartColors[bundle];
+
+  if (drilldownFeature) {
+    return (
+      <FeatureDrilldown
+        feature={drilldownFeature}
+        costs={costs}
+        filteredAccounts={filteredAccounts}
+        onClose={() => setDrilldownFeature(null)}
+      />
+    );
+  }
+
   const chartData = features.map((f) => {
     const count = getFeatureTotal(f.key, filteredAccounts);
     const unitCost = costs[f.key] || 0;
-    return {
-      name: f.label,
-      count,
-      cost: count * unitCost,
-    };
+    return { name: f.label, count, cost: count * unitCost };
+  });
+
+  const reportHeaders = ["Feature", "Count", "Unit Cost ($)", "Projected Cost ($)"];
+  const reportRows = features.map((f) => {
+    const count = getFeatureTotal(f.key, filteredAccounts);
+    const unitCost = costs[f.key] || 0;
+    return [f.label, count, unitCost, count * unitCost];
   });
 
   return (
@@ -41,25 +60,27 @@ export function FeatureDetailPanel({ bundle, costs, onClose, filteredAccounts }:
       >
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-secondary transition-colors"
-            >
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-secondary transition-colors">
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div>
               <h2 className="text-xl font-bold">{bundle} Bundle Details</h2>
               <p className="text-sm text-muted-foreground">
-                {features.length} features · Cost projection breakdown
+                {features.length} features · Click any feature to drill down
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-secondary transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <ReportDownload
+              title={`${bundle} Bundle Report`}
+              headers={reportHeaders}
+              rows={reportRows}
+              filename={`${bundle.toLowerCase()}-bundle-report`}
+            />
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-secondary transition-colors">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* Cost projection chart */}
@@ -92,7 +113,7 @@ export function FeatureDetailPanel({ bundle, costs, onClose, filteredAccounts }:
           </ResponsiveContainer>
         </div>
 
-        {/* Feature detail table */}
+        {/* Feature detail cards - clickable for drilldown */}
         <div className="space-y-2">
           {features.map((feature, i) => {
             const total = getFeatureTotal(feature.key, filteredAccounts);
@@ -109,7 +130,8 @@ export function FeatureDetailPanel({ bundle, costs, onClose, filteredAccounts }:
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="rounded-lg bg-secondary/50 p-4"
+                className="rounded-lg bg-secondary/50 p-4 cursor-pointer hover:bg-secondary/80 transition-colors"
+                onClick={() => setDrilldownFeature(feature)}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div>
@@ -117,8 +139,22 @@ export function FeatureDetailPanel({ bundle, costs, onClose, filteredAccounts }:
                     <p className="text-xs text-muted-foreground mt-0.5">{feature.description}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-mono font-bold gradient-text">${projectedCost.toLocaleString()}</p>
-                    <p className="text-[10px] text-muted-foreground">{total.toLocaleString()} × ${unitCost}</p>
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Count</p>
+                        <p className="text-lg font-mono font-bold">{total.toLocaleString()}</p>
+                      </div>
+                      <div className="text-muted-foreground">×</div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Unit Cost</p>
+                        <p className="text-lg font-mono font-bold">${unitCost}</p>
+                      </div>
+                      <div className="text-muted-foreground">=</div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Projected</p>
+                        <p className="text-lg font-mono font-bold gradient-text">${projectedCost.toLocaleString()}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -132,6 +168,7 @@ export function FeatureDetailPanel({ bundle, costs, onClose, filteredAccounts }:
                       Top: {topTenants[0]?.name} ({topTenants[0]?.value.toLocaleString()})
                     </span>
                   )}
+                  <span className="ml-auto text-primary text-xs">Click to drill down →</span>
                 </div>
               </motion.div>
             );
