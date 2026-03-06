@@ -17,7 +17,6 @@ interface FeatureDrilldownProps {
 export function FeatureDrilldown({ feature, costs, filteredAccounts, onClose }: FeatureDrilldownProps) {
   const unitCost = costs[feature.key] || 0;
 
-  // Account-level breakdown
   const accountData = filteredAccounts
     .map((a) => ({
       tenant: a.tenantName,
@@ -28,7 +27,6 @@ export function FeatureDrilldown({ feature, costs, filteredAccounts, onClose }: 
     .filter((d) => d.count > 0)
     .sort((a, b) => b.count - a.count);
 
-  // Tenant-level aggregation for pie chart
   const tenantMap = new Map<string, number>();
   accountData.forEach((d) => {
     tenantMap.set(d.tenant, (tenantMap.get(d.tenant) || 0) + d.count);
@@ -45,11 +43,7 @@ export function FeatureDrilldown({ feature, costs, filteredAccounts, onClose }: 
   const reportRows = accountData.map((d) => [d.tenant, d.account, d.count, d.cost]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="glass-card rounded-xl p-6"
-    >
+    <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} className="glass-card rounded-xl p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-secondary transition-colors">
@@ -62,9 +56,15 @@ export function FeatureDrilldown({ feature, costs, filteredAccounts, onClose }: 
         </div>
         <ReportDownload
           title={`${feature.label} Report`}
+          subtitle={`${feature.bundle} Bundle · Cost Projection Analysis`}
           headers={reportHeaders}
           rows={reportRows}
           filename={`${feature.label.toLowerCase().replace(/\s+/g, "-")}-report`}
+          summaryRows={[
+            { label: "Total Count", value: totalCount.toLocaleString() },
+            { label: "Unit Cost", value: `$${unitCost}` },
+            { label: "Projected Cost", value: `$${totalCost.toLocaleString()}` },
+          ]}
         />
       </div>
 
@@ -86,67 +86,35 @@ export function FeatureDrilldown({ feature, costs, filteredAccounts, onClose }: 
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Bar chart - top accounts */}
         <div>
           <h3 className="text-sm font-semibold mb-3">Top Accounts by Count</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={accountData.slice(0, 10)} margin={{ top: 5, right: 5, bottom: 40, left: 5 }}>
-                <XAxis
-                  dataKey="account"
-                  tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
-                  angle={-35}
-                  textAnchor="end"
-                  height={60}
-                  interval={0}
-                />
+                <XAxis dataKey="account" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} angle={-35} textAnchor="end" height={60} interval={0} />
                 <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                  }}
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
                   formatter={(value: number, name: string) => {
                     if (name === "cost") return [`$${value.toLocaleString()}`, "Cost"];
                     return [value.toLocaleString(), "Count"];
-                  }}
-                />
+                  }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="#3b82f6" opacity={0.85} name="count" />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/* Pie chart - tenant distribution */}
         <div>
           <h3 className="text-sm font-semibold mb-3">Distribution by Tenant</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={tenantData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={90}
-                  dataKey="value"
+                <Pie data={tenantData} cx="50%" cy="50%" outerRadius={90} dataKey="value"
                   label={({ name, percent }) => `${name.slice(0, 12)}${name.length > 12 ? "…" : ""} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={{ stroke: "hsl(var(--muted-foreground))" }}
-                >
-                  {tenantData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
+                  labelLine={{ stroke: "hsl(var(--muted-foreground))" }}>
+                  {tenantData.map((_, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                  }}
-                  formatter={(value: number) => [value.toLocaleString(), "Count"]}
-                />
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
+                  formatter={(value: number) => [value.toLocaleString(), "Count"]} />
               </PieChart>
             </ResponsiveContainer>
           </div>
