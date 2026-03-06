@@ -3,11 +3,11 @@ import { motion } from "framer-motion";
 import { ROICostInput, ROICosts } from "@/components/dashboard/ROICostInput";
 import { BundleCard } from "@/components/dashboard/BundleCard";
 import { FeatureDetailPanel } from "@/components/dashboard/FeatureDetailPanel";
-import { DashboardFilters, FilterState, filterAccounts } from "@/components/dashboard/DashboardFilters";
+import { DashboardFilters, FilterState, filterAccounts, hasActiveFilters } from "@/components/dashboard/DashboardFilters";
 import { AccountGovernance } from "@/components/dashboard/AccountGovernance";
 import { ReportDownload } from "@/components/dashboard/ReportDownload";
 import { BundleName, costFeatureConfigs, getFeatureTotal } from "@/data/cloudAccounts";
-import { BarChart3, TrendingUp } from "lucide-react";
+import { BarChart3, TrendingUp, SlidersHorizontal } from "lucide-react";
 
 const bundleOrder: BundleName[] = ["FinOps", "CloudOps", "SecOps"];
 
@@ -17,11 +17,12 @@ const Index = () => {
   const [costs, setCosts] = useState<ROICosts>(defaultCosts);
   const [selectedBundle, setSelectedBundle] = useState<BundleName | null>(null);
   const [filters, setFilters] = useState<FilterState>({
-    environment: "all",
-    accountMaster: "all",
-    month: "all",
+    environment: "",
+    selectedAccounts: [],
+    month: "",
   });
 
+  const filtersApplied = hasActiveFilters(filters);
   const filteredAccounts = useMemo(() => filterAccounts(filters), [filters]);
 
   const totalROI = useMemo(() => {
@@ -78,11 +79,11 @@ const Index = () => {
             </div>
             <div>
               <h1 className="text-lg font-bold">Cloud ROI Dashboard</h1>
-              <p className="text-xs text-muted-foreground">Synoptek · Cost Projection Analysis</p>
+              <p className="text-xs text-muted-foreground">Cost Projection Analysis</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            {totalROI > 0 && (
+            {filtersApplied && totalROI > 0 && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -101,64 +102,82 @@ const Index = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         <DashboardFilters filters={filters} onChange={setFilters} />
 
-        {/* Account Governance & Inventory Details */}
-        <AccountGovernance filteredAccounts={filteredAccounts} />
-
-        {/* Cost Projection Overview */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card rounded-xl p-6"
-        >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold mb-1">Cost Projection Overview</h2>
-              <p className="text-sm text-muted-foreground">
-                {totalFeatureCount.toLocaleString()} total feature instances across {bundleOrder.length} bundles.
-                Click any bundle to view detailed breakdown.
-              </p>
+        {!filtersApplied ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card rounded-xl p-12 text-center"
+          >
+            <div className="inline-flex p-4 rounded-2xl bg-primary/5 mb-4">
+              <SlidersHorizontal className="h-10 w-10 text-primary/40" />
             </div>
-            <div className="flex items-center gap-2">
-              <ReportDownload
-                title="Cost Projection Overview"
-                subtitle="Synoptek · Complete Cost Projection Analysis"
-                headers={overallReportHeaders}
-                rows={overallReportRows}
-                summaryRows={overallSummary}
-                filename="cost-projection-overview"
-                bundleBreakdown={bundleBreakdown}
-              />
-              {totalROI > 0 && (
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Total Projected Cost</p>
-                  <p className="text-3xl font-mono font-bold gradient-text">${totalROI.toLocaleString()}</p>
+            <h2 className="text-xl font-bold mb-2">Select Filters to Get Started</h2>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Choose an environment, cloud accounts, and a month above to view cost projections and account governance details.
+            </p>
+          </motion.div>
+        ) : (
+          <>
+            {/* Account Governance & Inventory Details */}
+            <AccountGovernance filteredAccounts={filteredAccounts} />
+
+            {/* Cost Projection Overview */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card rounded-xl p-6"
+            >
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold mb-1">Cost Projection Overview</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {totalFeatureCount.toLocaleString()} total feature instances across {bundleOrder.length} bundles.
+                    Click any bundle to view detailed breakdown.
+                  </p>
                 </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
+                <div className="flex items-center gap-2">
+                  <ReportDownload
+                    title="Cost Projection Overview"
+                    subtitle="Cloud ROI Dashboard · Complete Cost Projection Analysis"
+                    headers={overallReportHeaders}
+                    rows={overallReportRows}
+                    summaryRows={overallSummary}
+                    filename="cost-projection-overview"
+                    bundleBreakdown={bundleBreakdown}
+                  />
+                  {totalROI > 0 && (
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">Total Projected Cost</p>
+                      <p className="text-3xl font-mono font-bold gradient-text">${totalROI.toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
 
-        {/* Bundle Cards */}
-        {!selectedBundle ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {bundleOrder.map((bundle, i) => (
-              <BundleCard
-                key={bundle}
-                bundle={bundle}
+            {/* Bundle Cards */}
+            {!selectedBundle ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {bundleOrder.map((bundle, i) => (
+                  <BundleCard
+                    key={bundle}
+                    bundle={bundle}
+                    costs={costs}
+                    onClick={() => setSelectedBundle(bundle)}
+                    index={i}
+                    filteredAccounts={filteredAccounts}
+                  />
+                ))}
+              </div>
+            ) : (
+              <FeatureDetailPanel
+                bundle={selectedBundle}
                 costs={costs}
-                onClick={() => setSelectedBundle(bundle)}
-                index={i}
+                onClose={() => setSelectedBundle(null)}
                 filteredAccounts={filteredAccounts}
               />
-            ))}
-          </div>
-        ) : (
-          <FeatureDetailPanel
-            bundle={selectedBundle}
-            costs={costs}
-            onClose={() => setSelectedBundle(null)}
-            filteredAccounts={filteredAccounts}
-          />
+            )}
+          </>
         )}
       </main>
     </div>
