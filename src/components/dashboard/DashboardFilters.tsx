@@ -7,19 +7,23 @@ import { Button } from "@/components/ui/button";
 
 export interface FilterState {
   environment: string;
-  selectedAccounts: string[];
+  selectedAccountMasters: string[];
   month: string;
 }
 
 // Derive environment from cloud account name
 function deriveEnvironment(accountName: string): string {
   const lower = accountName.toLowerCase();
-  if (lower.includes("prod")) return "Production";
+  if (lower.includes("prod") && (lower.includes("us") || lower.includes("america"))) return "Prod-US";
+  if (lower.includes("prod") && (lower.includes("mea") || lower.includes("middle") || lower.includes("east"))) return "Prod-MEA";
+  if (lower.includes("prod") || lower.includes("production")) return "Production";
   if (lower.includes("dev")) return "Development";
   if (lower.includes("staging") || lower.includes("stag")) return "Staging";
   if (lower.includes("uat")) return "UAT";
   if (lower.includes("sandbox")) return "Sandbox";
+  if (lower.includes("shared")) return "Shared";
   if (lower.includes("hub")) return "Hub";
+  if (lower.includes("log") || lower.includes("archive")) return "Log Archive";
   return "Other";
 }
 
@@ -29,9 +33,9 @@ export function getUniqueEnvironments(): string[] {
   return Array.from(envs).sort();
 }
 
-// Get unique cloud account names
-export function getUniqueCloudAccounts(): string[] {
-  return [...new Set(cloudAccounts.map((a) => a.cloudAccountName))].sort();
+// Get unique account master names
+export function getUniqueAccountMasters(): string[] {
+  return [...new Set(cloudAccounts.map((a) => a.accountMasterName))].sort();
 }
 
 // Generate months list (last 12 months from current)
@@ -53,8 +57,8 @@ export function filterAccounts(filters: FilterState) {
     if (filters.environment && filters.environment !== "all") {
       if (deriveEnvironment(a.cloudAccountName) !== filters.environment) return false;
     }
-    if (filters.selectedAccounts.length > 0) {
-      if (!filters.selectedAccounts.includes(a.cloudAccountName)) return false;
+    if (filters.selectedAccountMasters.length > 0) {
+      if (!filters.selectedAccountMasters.includes(a.accountMasterName)) return false;
     }
     return true;
   });
@@ -62,7 +66,7 @@ export function filterAccounts(filters: FilterState) {
 
 // Check if filters are applied (not all defaults)
 export function hasActiveFilters(filters: FilterState): boolean {
-  return filters.environment !== "" || filters.selectedAccounts.length > 0 || filters.month !== "";
+  return filters.environment !== "" || filters.selectedAccountMasters.length > 0 || filters.month !== "";
 }
 
 interface DashboardFiltersProps {
@@ -72,7 +76,7 @@ interface DashboardFiltersProps {
 
 export function DashboardFilters({ filters, onChange }: DashboardFiltersProps) {
   const environments = getUniqueEnvironments();
-  const allAccounts = getUniqueCloudAccounts();
+  const allAccountMasters = getUniqueAccountMasters();
   const months = getMonthOptions();
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
   const [accountSearch, setAccountSearch] = useState("");
@@ -89,20 +93,20 @@ export function DashboardFilters({ filters, onChange }: DashboardFiltersProps) {
   }, []);
 
   const filteredAccountList = accountSearch
-    ? allAccounts.filter((a) => a.toLowerCase().includes(accountSearch.toLowerCase()))
-    : allAccounts;
+    ? allAccountMasters.filter((a) => a.toLowerCase().includes(accountSearch.toLowerCase()))
+    : allAccountMasters;
 
-  const toggleAccount = (accountName: string) => {
-    const current = filters.selectedAccounts;
-    if (current.includes(accountName)) {
-      onChange({ ...filters, selectedAccounts: current.filter((a) => a !== accountName) });
+  const toggleAccount = (name: string) => {
+    const current = filters.selectedAccountMasters;
+    if (current.includes(name)) {
+      onChange({ ...filters, selectedAccountMasters: current.filter((a) => a !== name) });
     } else if (current.length < 5) {
-      onChange({ ...filters, selectedAccounts: [...current, accountName] });
+      onChange({ ...filters, selectedAccountMasters: [...current, name] });
     }
   };
 
   const selectAll = () => {
-    onChange({ ...filters, selectedAccounts: [] });
+    onChange({ ...filters, selectedAccountMasters: [] });
     setAccountDropdownOpen(false);
   };
 
@@ -135,19 +139,19 @@ export function DashboardFilters({ filters, onChange }: DashboardFiltersProps) {
           </Select>
         </div>
 
-        {/* Cloud Accounts - Multi select up to 5 */}
+        {/* Account Master - Multi select up to 5 */}
         <div className="space-y-1" ref={dropdownRef} style={{ position: "relative", zIndex: 60 }}>
           <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-            Cloud Accounts <span className="text-muted-foreground/60">(max 5)</span>
+            Account Master <span className="text-muted-foreground/60">(max 5)</span>
           </label>
           <button
             onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
             className="flex items-center justify-between w-[260px] h-9 px-3 rounded-md bg-secondary border border-border text-sm hover:bg-secondary/80 transition-colors"
           >
-            <span className={filters.selectedAccounts.length === 0 ? "text-muted-foreground" : ""}>
-              {filters.selectedAccounts.length === 0
-                ? "All Accounts"
-                : `${filters.selectedAccounts.length} selected`}
+            <span className={filters.selectedAccountMasters.length === 0 ? "text-muted-foreground" : ""}>
+              {filters.selectedAccountMasters.length === 0
+                ? "All Account Masters"
+                : `${filters.selectedAccountMasters.length} selected`}
             </span>
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
@@ -160,7 +164,7 @@ export function DashboardFilters({ filters, onChange }: DashboardFiltersProps) {
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Search accounts..."
+                    placeholder="Search account masters..."
                     value={accountSearch}
                     onChange={(e) => setAccountSearch(e.target.value)}
                     className="w-full h-8 pl-8 pr-3 text-xs bg-secondary border border-border rounded-md outline-none focus:ring-1 focus:ring-primary"
@@ -172,22 +176,22 @@ export function DashboardFilters({ filters, onChange }: DashboardFiltersProps) {
               <div
                 onClick={selectAll}
                 className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-secondary/50 text-xs border-b border-border/50 ${
-                  filters.selectedAccounts.length === 0 ? "bg-primary/5" : ""
+                  filters.selectedAccountMasters.length === 0 ? "bg-primary/5" : ""
                 }`}
               >
                 <div className={`h-3.5 w-3.5 rounded border flex items-center justify-center ${
-                  filters.selectedAccounts.length === 0 ? "bg-primary border-primary" : "border-border"
+                  filters.selectedAccountMasters.length === 0 ? "bg-primary border-primary" : "border-border"
                 }`}>
-                  {filters.selectedAccounts.length === 0 && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                  {filters.selectedAccountMasters.length === 0 && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                 </div>
-                <span className="font-medium">All Accounts</span>
+                <span className="font-medium">All Account Masters</span>
               </div>
 
               {/* Account list */}
               <div className="max-h-[220px] overflow-y-auto">
                 {filteredAccountList.map((account) => {
-                  const isSelected = filters.selectedAccounts.includes(account);
-                  const isDisabled = !isSelected && filters.selectedAccounts.length >= 5;
+                  const isSelected = filters.selectedAccountMasters.includes(account);
+                  const isDisabled = !isSelected && filters.selectedAccountMasters.length >= 5;
                   return (
                     <div
                       key={account}
@@ -208,9 +212,9 @@ export function DashboardFilters({ filters, onChange }: DashboardFiltersProps) {
               </div>
 
               {/* Footer */}
-              {filters.selectedAccounts.length > 0 && (
+              {filters.selectedAccountMasters.length > 0 && (
                 <div className="p-2 border-t border-border flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground">{filters.selectedAccounts.length}/5 selected</span>
+                  <span className="text-[10px] text-muted-foreground">{filters.selectedAccountMasters.length}/5 selected</span>
                   <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={selectAll}>Clear all</Button>
                 </div>
               )}
@@ -218,9 +222,9 @@ export function DashboardFilters({ filters, onChange }: DashboardFiltersProps) {
           )}
 
           {/* Selected account badges */}
-          {filters.selectedAccounts.length > 0 && (
+          {filters.selectedAccountMasters.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1.5 max-w-[320px]">
-              {filters.selectedAccounts.map((a) => (
+              {filters.selectedAccountMasters.map((a) => (
                 <Badge key={a} variant="secondary" className="text-[9px] h-5 gap-1 pl-2 pr-1 max-w-[150px]">
                   <span className="truncate">{a.length > 20 ? a.slice(0, 18) + "…" : a}</span>
                   <button onClick={() => toggleAccount(a)} className="hover:bg-secondary rounded-full p-0.5">

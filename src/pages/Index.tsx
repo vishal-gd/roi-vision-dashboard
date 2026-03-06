@@ -18,7 +18,7 @@ const Index = () => {
   const [selectedBundle, setSelectedBundle] = useState<BundleName | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     environment: "",
-    selectedAccounts: [],
+    selectedAccountMasters: [],
     month: "",
   });
 
