@@ -111,7 +111,7 @@ export function DashboardFilters({ filters, onChange }: DashboardFiltersProps) {
   };
 
   return (
-    <div className="glass-card rounded-xl p-5 relative z-[70]">
+    <div className="glass-card rounded-xl p-5 relative z-[40]">
       <div className="flex items-center gap-2 mb-4">
         <div className="p-1.5 rounded-lg bg-primary/10">
           <Filter className="h-4 w-4 text-primary" />
