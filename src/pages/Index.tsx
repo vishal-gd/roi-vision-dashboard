@@ -3,9 +3,8 @@ import { motion } from "framer-motion";
 import { ROICostInput, ROICosts } from "@/components/dashboard/ROICostInput";
 import { BundleCard } from "@/components/dashboard/BundleCard";
 import { FeatureDetailPanel } from "@/components/dashboard/FeatureDetailPanel";
-import { StatsOverview } from "@/components/dashboard/StatsOverview";
-import { InventoryOverview } from "@/components/dashboard/InventoryOverview";
 import { DashboardFilters, FilterState, filterAccounts } from "@/components/dashboard/DashboardFilters";
+import { AccountGovernance } from "@/components/dashboard/AccountGovernance";
 import { ReportDownload } from "@/components/dashboard/ReportDownload";
 import { BundleName, costFeatureConfigs, getFeatureTotal } from "@/data/cloudAccounts";
 import { BarChart3, TrendingUp } from "lucide-react";
@@ -36,7 +35,6 @@ const Index = () => {
     return costFeatureConfigs.reduce((sum, f) => sum + getFeatureTotal(f.key, filteredAccounts), 0);
   }, [filteredAccounts]);
 
-  // Overall report data
   const overallReportHeaders = ["Bundle", "Feature", "Count", "Unit Cost ($)", "Projected Cost ($)"];
   const overallReportRows = costFeatureConfigs.map((f) => {
     const count = getFeatureTotal(f.key, filteredAccounts);
@@ -51,7 +49,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background dark">
-      {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -81,13 +78,12 @@ const Index = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Filters */}
         <DashboardFilters filters={filters} onChange={setFilters} />
 
-        {/* Cloud Accounts & Tenants */}
-        <StatsOverview />
+        {/* Account Governance & Inventory Details */}
+        <AccountGovernance filteredAccounts={filteredAccounts} />
 
-        {/* Cost Overview Banner */}
+        {/* Cost Projection Overview */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -101,7 +97,7 @@ const Index = () => {
                 Click any bundle to view detailed breakdown.
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <ReportDownload
                 title="Cost Projection Overview"
                 subtitle="Synoptek · Complete Cost Projection Analysis"
@@ -142,9 +138,6 @@ const Index = () => {
             filteredAccounts={filteredAccounts}
           />
         )}
-
-        {/* Inventory Overview - below cost projection */}
-        <InventoryOverview filteredAccounts={filteredAccounts} />
       </main>
     </div>
   );
