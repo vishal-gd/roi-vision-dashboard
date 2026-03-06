@@ -64,9 +64,9 @@ export function filterAccounts(filters: FilterState) {
   });
 }
 
-// Check if filters are applied (not all defaults)
+// Check if all filters are applied
 export function hasActiveFilters(filters: FilterState): boolean {
-  return filters.environment !== "" || filters.selectedAccountMasters.length > 0 || filters.month !== "";
+  return filters.environment !== "" && filters.month !== "";
 }
 
 interface DashboardFiltersProps {
